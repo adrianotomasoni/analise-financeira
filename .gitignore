@@ -1,0 +1,11 @@
+node_modules/
+dist/
+.env
+.env.local
+*.log
+saida*.json
+.DS_Store
+
+# Pacotes de distribuição usados apenas para transferir o projeto.
+analisefinanceira.zip
+analisefinanceira.tar.gz

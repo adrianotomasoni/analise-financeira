@@ -1,0 +1,4 @@
+# Todo o repositório exige revisão do proprietário.
+# Combinado com uma ruleset em `main` que exija revisão do code owner, isto
+# impede merge sem aprovação — inclusive de quem tiver acesso de escrita.
+* @adrianotomasoni

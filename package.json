@@ -1,0 +1,30 @@
+{
+  "name": "analise-financeira-br",
+  "version": "1.0.0",
+  "description": "Motor de leitura, conferência e análise de Balanço Patrimonial e DRE brasileiros, com extração por IA e score determinístico.",
+  "type": "module",
+  "license": "MIT",
+  "engines": { "node": ">=20" },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": { ".": { "types": "./dist/index.d.ts", "import": "./dist/index.js" } },
+  "bin": { "analise-financeira": "./dist/cli.js" },
+  "files": ["dist", "docs", "README.md"],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "sanidade": "tsx testes/sanidade.ts",
+    "teste": "npm run typecheck && npm run sanidade",
+    "cli": "tsx src/cli.ts",
+    "prepublishOnly": "npm run build"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.124.0",
+    "pdf-parse": "^1.1.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.8.3"
+  }
+}
