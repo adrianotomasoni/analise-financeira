@@ -18,6 +18,9 @@ com quem os abre: o motor é mantido em outro lugar, e mesclar aqui criaria duas
 fontes da verdade num código que embasa decisão financeira. PRs abertos serão
 fechados com um apontamento para este arquivo.
 
+(Os pull requests automáticos do Dependabot são a exceção óbvia: vêm do
+próprio repositório, atualizam dependência e passam pelo mesmo CI.)
+
 Se você corrigiu algo real, **abra uma issue descrevendo o defeito** — com o
 número que sai errado e o que deveria sair. Isso chega ao lugar certo. O código
 da correção é útil na issue, como referência, mas a mudança é aplicada na origem.
@@ -27,7 +30,7 @@ da correção é útil na issue, como referência, mas a mudança é aplicada na
 Três avisos que economizam tempo:
 
 1. **`npm run teste` é o que impede uma fórmula de sair errada em silêncio.**
-   São 93 verificações sobre um caso real. Ao mexer em faixa, peso ou fórmula,
+   São 126 verificações sobre um caso real. Ao mexer em faixa, peso ou fórmula,
    rode. Se quebrar, leia o que quebrou antes de ajustar a asserção — a asserção
    costuma estar certa.
 2. **As faixas de referência são de empresa brasileira de médio porte.** Setor

@@ -1,0 +1,26 @@
+# Atualização de dependências.
+#
+# São duas dependências diretas e três de desenvolvimento. O volume é baixo o
+# bastante para revisão manual, e o CI decide: um PR do Dependabot que deixa as
+# verificações de sanidade vermelhas é uma dependência que não entra.
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: "/"
+    schedule:
+      interval: monthly
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: "deps"
+    groups:
+      desenvolvimento:
+        dependency-type: development
+
+  # As actions do workflow também envelhecem, e são código de terceiro rodando
+  # com acesso ao repositório.
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: monthly
+    commit-message:
+      prefix: "ci"

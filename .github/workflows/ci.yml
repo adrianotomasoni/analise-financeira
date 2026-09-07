@@ -45,12 +45,14 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node }}
+          cache: npm
 
       - name: Instalar dependências
-        # Sem package-lock.json versionado, então `npm install`. O install.sh usa
-        # `npm ci` quando um lockfile existe; se um dia for versionado, troque
-        # aqui também e ative o cache do setup-node.
-        run: npm install --no-audit --no-fund
+        # `npm ci` e não `npm install`: instala exatamente o que está no
+        # package-lock.json e falha se ele divergir do package.json. Sem isso, o
+        # CI poderia ficar vermelho por uma versão nova de dependência, sem que
+        # nada no repositório tivesse mudado — e verde de novo no dia seguinte.
+        run: npm ci --no-audit --no-fund
 
       - name: Compilar
         # Antes da sanidade de propósito: o Cenário J confere que bin, main,
@@ -58,7 +60,7 @@ jobs:
         # realmente gera, e ele se pula sozinho quando dist/ não existe.
         run: npm run build
 
-      - name: Verificar (typecheck + 115 verificações de sanidade)
+      - name: Verificar (typecheck + verificações de sanidade)
         run: npm run teste
 
       - name: Smoke do binário compilado, offline

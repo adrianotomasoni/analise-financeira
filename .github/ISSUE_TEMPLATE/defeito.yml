@@ -1,0 +1,43 @@
+name: Defeito de funcionamento
+description: Instalação, CLI, extração de PDF ou configuração de provedor
+labels: ["defeito"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        **Nunca cole a sua chave de API**, nem um trecho dela. Se o problema é de
+        credencial, `analise-financeira ambiente` mostra o diagnóstico sem
+        imprimir valor nenhum — cole a saída dele.
+
+  - type: textarea
+    id: o-que-aconteceu
+    attributes:
+      label: O que aconteceu, e o que você esperava
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduzir
+    attributes:
+      label: Comando que reproduz
+      render: shell
+      placeholder: "npm run cli -- analisar balanco.pdf --ano 2025"
+    validations:
+      required: true
+
+  - type: textarea
+    id: ambiente
+    attributes:
+      label: Saída de `analise-financeira ambiente`
+      description: Não imprime credencial — só de qual variável ela veio.
+      render: text
+    validations:
+      required: false
+
+  - type: input
+    id: node
+    attributes:
+      label: Versão do Node e sistema
+      placeholder: "Node 22.11.0, macOS 15"
+    validations:
+      required: true

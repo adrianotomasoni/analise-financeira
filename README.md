@@ -1,5 +1,9 @@
 # analise-financeira-br
 
+[![CI](https://github.com/adrianotomasoni/analise-financeira/actions/workflows/ci.yml/badge.svg)](https://github.com/adrianotomasoni/analise-financeira/actions/workflows/ci.yml)
+[![Licença: MIT](https://img.shields.io/badge/licen%C3%A7a-MIT-blue.svg)](LICENSE)
+[![Node](https://img.shields.io/badge/node-%E2%89%A520-brightgreen.svg)](package.json)
+
 Motor de leitura, **conferência** e análise de Balanço Patrimonial e DRE brasileiros.
 Lê o PDF com um modelo de IA, confere o que foi lido contra o próprio documento e
 produz 33 indicadores, sinais de alerta, uma nota de 0 a 100 com memória de cálculo
@@ -189,7 +193,7 @@ sem rede, sem chave.
 
 ## Estado e limites
 
-**O que é sólido.** O motor determinístico — 93 verificações automatizadas sobre um
+**O que é sólido.** O motor determinístico — 126 verificações automatizadas sobre um
 caso real, rodando offline. As fórmulas, as faixas, a conferência, a nota e a síntese
 foram construídos a partir de auditoria linha a linha de documentos assinados.
 

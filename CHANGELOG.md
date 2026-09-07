@@ -48,10 +48,21 @@ que o build não gerava.
 - **CI no GitHub Actions** — build, typecheck, as verificações de sanidade,
   smoke do binário compilado e conferência do pacote, em Node 20 e 22. Roda
   offline, sem segredo algum.
-- 22 verificações de sanidade novas (93 → 115), cobrindo precedência de
+- 22 verificações de sanidade novas (93 → 126), cobrindo precedência de
   configuração, arquivo ausente, provedor inválido, a concordância entre
   diagnóstico e chamada real, e a correspondência entre o que o `package.json`
   promete e o que o build entrega.
+
+- **Apoio a uso por terceiros** — `LICENSE` passa a nomear o titular do
+  copyright (a MIT exige preservar o aviso, e não havia de quem); badges de CI,
+  licença e Node no README; formulários de issue para erro de cálculo, faixa de
+  referência e defeito de funcionamento, cada um avisando o que não colar em
+  repositório público — demonstração de empresa identificável e chave de API;
+  template de pull request que recusa antes, e não depois, explicando o caminho
+  que funciona; e Dependabot mensal para npm e para as actions do workflow.
+- **`package-lock.json` versionado**, e o CI passa a usar `npm ci`. Sem ele, uma
+  versão nova de dependência podia deixar o CI vermelho sem que nada no
+  repositório tivesse mudado — e verde de novo no dia seguinte.
 
 ### Alterado
 
@@ -59,6 +70,15 @@ que o build não gerava.
   CLI carrega o arquivo. `import { analisar }` não reescreve o `process.env` de
   quem importou — num serviço multi-tenant, isso vazaria a chave de um cliente
   para a chamada de outro.
+- O comando `ambiente` passa a reconhecer o placeholder do `.env.example` como
+  credencial ausente. O `install.sh` copia aquele arquivo para `.env`, então
+  logo após instalar a chave "existia" e não valia nada — e o diagnóstico dizia
+  "pronto" justamente no cenário mais comum de não estar. Uma verificação de
+  sanidade agora carrega o `.env.example` real do repositório e exige que o
+  diagnóstico acuse.
+- `SECURITY.md` dizia "não há workflows do GitHub Actions". Passou a haver, e a
+  afirmação foi corrigida: o workflow não usa `secrets`, não chama provedor de
+  IA e declara `permissions: contents: read`.
 
 ---
 

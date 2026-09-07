@@ -1,0 +1,39 @@
+name: Faixa de referência inadequada
+description: A faixa verde/amarelo/vermelho não serve para um setor
+labels: ["faixa-de-referencia"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        As faixas atuais são de empresa brasileira de médio porte. Setor com
+        estrutura própria — construção, concessionária, varejo de giro rápido —
+        precisa das suas. Ver `docs/02-indicadores.md`.
+
+        Uma faixa não é opinião: ela precisa vir de algum lugar. Diga de onde.
+
+  - type: input
+    id: indicador
+    attributes:
+      label: Indicador
+      placeholder: "Liquidez Corrente"
+    validations:
+      required: true
+
+  - type: input
+    id: setor
+    attributes:
+      label: Setor
+      placeholder: "Construção civil — incorporadora"
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposta
+    attributes:
+      label: Faixa atual, faixa proposta e a fonte
+      description: >
+        A fonte pode ser estudo setorial, série histórica de uma carteira, norma
+        contábil ou prática de mercado documentada. "Na minha experiência" é um
+        começo de conversa, não uma faixa.
+    validations:
+      required: true

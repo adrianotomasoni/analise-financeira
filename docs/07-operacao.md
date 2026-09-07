@@ -172,7 +172,7 @@ Quem emite responde pelo que emite.
 Ao mexer em fórmula, faixa, peso ou prompt:
 
 ```bash
-npm run teste      # typecheck + as 93 verificações sobre o caso conhecido
+npm run teste      # typecheck + as 126 verificações sobre o caso conhecido
 ```
 
 A sanidade não é decorativa: ela reprova mudança que quebre a coerência entre as

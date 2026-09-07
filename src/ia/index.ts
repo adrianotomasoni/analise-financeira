@@ -35,6 +35,13 @@ export interface ConfiguracaoIA {
   varsCredencial: string[];
   /** Nome da variável que forneceu a credencial, ou `null`. Nunca o valor. */
   credencialDe: string | null;
+  /**
+   * Variável preenchida com o placeholder do `.env.example`, se houver. O
+   * `install.sh` copia aquele arquivo para `.env`, então logo após instalar a
+   * chave "existe" e não vale nada: tratá-la como definida faz o diagnóstico
+   * dizer "pronto" exatamente no cenário mais comum de não estar.
+   */
+  credencialPlaceholderEm: string | null;
   esforco: string | null;
   /**
    * O que impede uma chamada agora, em texto acionável — ou `null` se está
@@ -44,9 +51,31 @@ export interface ConfiguracaoIA {
   problema: string | null;
 }
 
-/** Primeira variável não vazia da lista. Devolve o nome, nunca o valor. */
-function primeiraDefinida(vars: string[]): string | null {
-  return vars.find((v) => (process.env[v] ?? "").trim() !== "") ?? null;
+/**
+ * Valor que é claramente um marcador de lugar, não uma credencial. Os do
+ * `.env.example` (`sk-ant-...`, `sk-...`) caem na primeira regra; as outras
+ * cobrem as convenções que as pessoas escrevem à mão ao adaptar o arquivo.
+ */
+function ehPlaceholder(valor: string): boolean {
+  const v = valor.trim();
+  return v.includes("...")
+    || /^<.*>$/.test(v)
+    // `\b` não serve aqui: entre "SEU" e "_" não há fronteira de palavra,
+    // porque "_" conta como caractere de palavra — e "SEU_TOKEN_AQUI" é
+    // justamente a forma mais comum de placeholder escrito à mão.
+    || /^(seu|sua|your|change ?me|troque|todo|x{3,})([^a-z0-9]|$)/i.test(v);
+}
+
+/** Estado de uma credencial. Devolve nomes de variável, nunca valores. */
+function acharCredencial(vars: string[]): { definidaEm: string | null; placeholderEm: string | null } {
+  let placeholderEm: string | null = null;
+  for (const v of vars) {
+    const valor = (process.env[v] ?? "").trim();
+    if (valor === "") continue;
+    if (ehPlaceholder(valor)) { placeholderEm ??= v; continue; }
+    return { definidaEm: v, placeholderEm: null };
+  }
+  return { definidaEm: null, placeholderEm };
 }
 
 /**
@@ -61,7 +90,8 @@ export function configuracaoEfetiva(opts: OpcoesProvedor = {}): ConfiguracaoIA {
   if (provedor !== "anthropic" && provedor !== "openai-compat") {
     return {
       provedor: "anthropic", modelo: MODELO_PADRAO_ANTHROPIC, aceitaPdf: true,
-      baseUrl: null, varsCredencial: [], credencialDe: null, esforco: null,
+      baseUrl: null, varsCredencial: [], credencialDe: null,
+      credencialPlaceholderEm: null, esforco: null,
       problema: `IA_PROVEDOR="${provedor}" não existe. Use "anthropic" ou "openai-compat".`,
     };
   }
@@ -69,15 +99,19 @@ export function configuracaoEfetiva(opts: OpcoesProvedor = {}): ConfiguracaoIA {
   if (provedor === "openai-compat") {
     const baseUrl = opts.baseUrl ?? process.env.IA_BASE_URL ?? null;
     const varsCredencial = ["IA_API_KEY"];
-    const credencialDe = opts.apiKey ? "(passada em código)" : primeiraDefinida(varsCredencial);
+    const achado = acharCredencial(varsCredencial);
+    const credencialDe = opts.apiKey ? "(passada em código)" : achado.definidaEm;
     return {
-      provedor, aceitaPdf: false, baseUrl, varsCredencial, credencialDe, esforco: null,
+      provedor, aceitaPdf: false, baseUrl, varsCredencial, credencialDe,
+      credencialPlaceholderEm: opts.apiKey ? null : achado.placeholderEm, esforco: null,
       modelo: opts.modelo ?? process.env.IA_MODELO ?? MODELO_PADRAO_OPENAI_COMPAT,
       problema: !baseUrl
         ? 'IA_PROVEDOR=openai-compat exige IA_BASE_URL (ex.: https://api.openai.com/v1).'
-        : !credencialDe
-          ? "IA_API_KEY não definida. Endpoint local sem autenticação? Deixe qualquer valor."
-          : null,
+        : achado.placeholderEm && !credencialDe
+          ? `${achado.placeholderEm} ainda está com o valor de exemplo do .env.example. Troque pela chave real.`
+          : !credencialDe
+            ? "IA_API_KEY não definida. Endpoint local sem autenticação? Deixe qualquer valor."
+            : null,
     };
   }
 
@@ -86,14 +120,19 @@ export function configuracaoEfetiva(opts: OpcoesProvedor = {}): ConfiguracaoIA {
   // das variáveis está definida a chamada ainda pode funcionar, então isto é
   // relatado como aviso na CLI, não como impedimento.
   const varsCredencial = ["ANTHROPIC_API_KEY", "ANTHROPIC_AUTH_TOKEN"];
-  const credencialDe = opts.apiKey ? "(passada em código)" : primeiraDefinida(varsCredencial);
+  const achado = acharCredencial(varsCredencial);
+  const credencialDe = opts.apiKey ? "(passada em código)" : achado.definidaEm;
+  const placeholderEm = opts.apiKey ? null : achado.placeholderEm;
   return {
     provedor, aceitaPdf: true, baseUrl: null, varsCredencial, credencialDe,
+    credencialPlaceholderEm: placeholderEm,
     modelo: opts.modelo ?? process.env.IA_MODELO ?? MODELO_PADRAO_ANTHROPIC,
     esforco: opts.esforco ?? process.env.IA_ESFORCO ?? "high",
     problema: credencialDe
       ? null
-      : "ANTHROPIC_API_KEY não definida — a chamada só funciona se houver perfil de `ant auth login`.",
+      : placeholderEm
+        ? `${placeholderEm} ainda está com o valor de exemplo do .env.example — o install.sh copia aquele arquivo. Troque pela chave real.`
+        : "ANTHROPIC_API_KEY não definida — a chamada só funciona se houver perfil de `ant auth login`.",
   };
 }
 

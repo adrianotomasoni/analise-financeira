@@ -116,7 +116,9 @@ function mostrarAmbiente(origem: OrigemEnv): number {
     : cor("yellow", "via --texto — o layout da tabela se perde"));
   linha("credencial", cfg.credencialDe
     ? cor("green", `${cfg.credencialDe} definida`)
-    : cor("red", `ausente (procurada em ${cfg.varsCredencial.join(", ")})`));
+    : cfg.credencialPlaceholderEm
+      ? cor("red", `${cfg.credencialPlaceholderEm} ainda é o exemplo do .env.example`)
+      : cor("red", `ausente (procurada em ${cfg.varsCredencial.join(", ")})`));
 
   console.log("");
   if (cfg.problema) {

@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Falha de segurança explorável
+    url: https://github.com/adrianotomasoni/analise-financeira/security/advisories/new
+    about: Não abra issue pública. Use uma security advisory privada — ver SECURITY.md.
+  - name: Antes de abrir um pull request
+    url: https://github.com/adrianotomasoni/analise-financeira/blob/main/CONTRIBUTING.md
+    about: PRs não são revisados nem mesclados. Leia por quê, e o que fazer em vez disso.

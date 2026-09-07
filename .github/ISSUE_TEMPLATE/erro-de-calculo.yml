@@ -1,0 +1,60 @@
+name: Erro de cálculo
+description: Um indicador, uma conferência ou a nota saiu com valor errado
+labels: ["erro-de-calculo"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        **Não cole demonstrações reais de empresa identificável.** Este repositório
+        é público e não versiona dado real: nome, CNPJ e identificação do contador
+        não devem aparecer aqui. Os *valores* bastam para reproduzir o erro — é
+        assim que o caso de referência do projeto foi montado.
+
+        Se o erro só aparece com um documento que você não pode compartilhar,
+        descreva a estrutura da conta (linha de total com subcontas redutoras,
+        por exemplo) em vez de anexar o arquivo.
+
+  - type: input
+    id: indicador
+    attributes:
+      label: O que saiu errado
+      description: Indicador, verificação de conferência, alerta ou a nota.
+      placeholder: "Dív. Líq. / EBITDA"
+    validations:
+      required: true
+
+  - type: input
+    id: obtido
+    attributes:
+      label: Valor que saiu
+      placeholder: "17,81x"
+    validations:
+      required: true
+
+  - type: input
+    id: esperado
+    attributes:
+      label: Valor que deveria sair, e por quê
+      placeholder: "12,40x — o EBITDA deve incluir a depreciação da DFC, não a da DRE"
+    validations:
+      required: true
+
+  - type: textarea
+    id: contas
+    attributes:
+      label: Contas que reproduzem o caso
+      description: >
+        JSON de contas, ou as linhas necessárias. Com ele dá para rodar
+        `npm run cli -- analisar contas.json --sem-ia` e ver o mesmo resultado.
+      render: json
+    validations:
+      required: false
+
+  - type: input
+    id: versao
+    attributes:
+      label: Versão
+      description: "`npm pkg get version`, ou o commit."
+      placeholder: "1.1.0"
+    validations:
+      required: true

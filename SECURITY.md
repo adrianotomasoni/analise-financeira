@@ -12,7 +12,11 @@ inclusive erro de cálculo, que é o defeito mais provável neste código.
 
 - **Nenhuma credencial.** `.env` está no `.gitignore` desde o primeiro commit; o
   que está versionado é o `.env.example`, com placeholders.
-- **Nenhum segredo de CI.** Não há workflows do GitHub Actions.
+- **Nenhum segredo de CI.** Há um workflow do GitHub Actions
+  (`.github/workflows/ci.yml`), e ele roda offline: compila, roda as
+  verificações de sanidade sobre o caso de referência e confere o pacote.
+  Não usa `secrets`, não chama provedor de IA e declara
+  `permissions: contents: read`.
 - **Nenhum dado identificável.** O arquivo de exemplo vem de um documento real,
   mas nome, CNPJ e a identificação do contador foram removidos. Os valores são os
   originais — sem identidade, um conjunto de números de balanço não identifica

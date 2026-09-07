@@ -33,7 +33,7 @@ import { classificarPeriodo } from "../src/periodo.js";
 import { analisar } from "../src/analisar.js";
 import { notaParaScore, ratingDaNota } from "../src/score.js";
 import { LEGENDA_PONTUACAO, LEGENDA_RATING } from "../src/legenda.js";
-import { carregarEnv, chavesDeclaradas } from "../src/ambiente.js";
+import { carregarEnv, chavesDeclaradas, raizDoPacote } from "../src/ambiente.js";
 import { configuracaoEfetiva, provedorDoAmbiente, MODELO_PADRAO_ANTHROPIC } from "../src/ia/index.js";
 
 const aqui = dirname(fileURLToPath(import.meta.url));
@@ -296,6 +296,33 @@ console.log("\nCenário I — configuração: o .env precisa chegar ao processo"
   limpar();
   process.env.IA_PROVEDOR = "provedor-que-nao-existe";
   ok("IA_PROVEDOR inválido é reportado, não ignorado", configuracaoEfetiva().problema !== null);
+
+  // O cenário exato de quem acabou de rodar o install.sh: ele copia o
+  // .env.example para .env, então a chave "existe" e não vale nada. Tratá-la
+  // como definida faz o diagnóstico dizer "pronto" justamente quando não está
+  // — e o usuário só descobre na primeira chamada, que falha por credencial.
+  // O teste usa o .env.example DE VERDADE: se um placeholder novo entrar
+  // naquele arquivo sem cair na detecção, é aqui que se descobre.
+  limpar();
+  process.env.ANALISE_ENV_FILE = join(raizDoPacote(), ".env.example");
+  const comExemplo = carregarEnv();
+  ok("o .env.example do repositório é encontrado", comExemplo.arquivo !== null);
+  const cfgExemplo = configuracaoEfetiva();
+  eq("a chave de exemplo NÃO conta como credencial", cfgExemplo.credencialDe, null);
+  eq("e é apontada como placeholder", cfgExemplo.credencialPlaceholderEm, "ANTHROPIC_API_KEY");
+  ok("com o .env recém-copiado, o diagnóstico acusa", cfgExemplo.problema !== null);
+
+  for (const valor of ["sk-ant-...", "<sua-chave>", "SEU_TOKEN_AQUI", "xxxxx", "changeme"]) {
+    limpar();
+    process.env.ANTHROPIC_API_KEY = valor;
+    ok(`"${valor}" é reconhecido como placeholder`, configuracaoEfetiva().credencialDe === null);
+  }
+
+  limpar();
+  process.env.ANTHROPIC_API_KEY = "sk-ant-api03-chaveRealDeVerdade0123456789";
+  eq("uma chave real continua contando como credencial",
+     configuracaoEfetiva().credencialDe, "ANTHROPIC_API_KEY");
+  eq("e não é marcada como placeholder", configuracaoEfetiva().credencialPlaceholderEm, null);
 
   limpar();
   Object.assign(process.env, guarda);
