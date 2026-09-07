@@ -29,7 +29,7 @@ git log --all --oneline -- .env
 git ls-files
 ```
 
-As três primeiras devem voltar vazias; a quarta lista os 40 arquivos do projeto.
+As três primeiras devem voltar vazias; a quarta lista os 41 arquivos do projeto.
 
 > Se você afrouxar o padrão da primeira para um `sk-ant-` solto, ela acusa cinco
 > ocorrências — são os placeholders `sk-ant-...` na documentação, propositais.

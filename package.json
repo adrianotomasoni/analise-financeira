@@ -1,6 +1,6 @@
 {
   "name": "analise-financeira-br",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Motor de leitura, conferência e análise de Balanço Patrimonial e DRE brasileiros, com extração por IA e score determinístico.",
   "type": "module",
   "license": "MIT",
