@@ -183,6 +183,7 @@ sem rede, sem chave.
 | **[`docs/05-conectar-ia.md`](docs/05-conectar-ia.md)** | **Como ligar um modelo: provedores, custo, o que delegar e o que nunca delegar** |
 | [`docs/06-prompts.md`](docs/06-prompts.md) | Os prompts, o schema e por que cada regra existe |
 | [`docs/07-operacao.md`](docs/07-operacao.md) | Lote, custo, reprocesso e o que fazer quando a conferência acusa |
+| [`CHANGELOG.md`](CHANGELOG.md) | O que mudou em cada versão |
 
 ---
 

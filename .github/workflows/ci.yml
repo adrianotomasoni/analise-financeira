@@ -1,0 +1,86 @@
+# Verificação automática de cada push e de cada pull request.
+#
+# O `main` está fechado por ruleset e CODEOWNERS: nada entra sem revisão. Este
+# workflow é a outra metade — a revisão humana olha a intenção, o CI mede o
+# comportamento sobre o caso de referência.
+#
+# Roda offline. Nenhum segredo, nenhuma chave, nenhuma chamada a modelo: o que
+# se verifica aqui é justamente a parte determinística, que é a que decide.
+
+name: CI
+
+on:
+  push:
+    branches: ["**"]
+    tags-ignore: ["**"]
+  pull_request:
+  workflow_dispatch:
+
+# Menor privilégio: o workflow só precisa ler o código.
+permissions:
+  contents: read
+
+# Push novo na mesma referência cancela a execução anterior, que já não
+# descreve mais o que está lá.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verificar:
+    name: Node ${{ matrix.node }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        # 20 é o piso declarado em `engines`; 22 é o LTS corrente. O piso
+        # importa: `process.loadEnvFile` só existe a partir do 20.12, e o
+        # fallback de `src/ambiente.ts` existe para o resto da linha 20.
+        node: ["20", "22"]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+
+      - name: Instalar dependências
+        # Sem package-lock.json versionado, então `npm install`. O install.sh usa
+        # `npm ci` quando um lockfile existe; se um dia for versionado, troque
+        # aqui também e ative o cache do setup-node.
+        run: npm install --no-audit --no-fund
+
+      - name: Compilar
+        # Antes da sanidade de propósito: o Cenário J confere que bin, main,
+        # types e exports do package.json apontam para arquivos que o build
+        # realmente gera, e ele se pula sozinho quando dist/ não existe.
+        run: npm run build
+
+      - name: Verificar (typecheck + 115 verificações de sanidade)
+        run: npm run teste
+
+      - name: Smoke do binário compilado, offline
+        # O caminho de quem instala o pacote, e não o de quem roda via tsx a
+        # partir de src/ — foi exatamente o caminho que ninguém percorria
+        # quando o build emitia em dist/src/ e o bin apontava para dist/.
+        run: |
+          node dist/cli.js analisar exemplos/exemplo-transportadora-2025.json --sem-ia > /tmp/saida.txt
+          grep -q "E — Crítico" /tmp/saida.txt
+          grep -q "não se aplica — patrimônio líquido negativo" /tmp/saida.txt
+          echo "análise offline pelo binário: ok"
+
+      - name: Diagnóstico de ambiente sem credencial deve falhar com código 1
+        # Contrato do comando `ambiente`: sem configuração ele acusa e sai 1,
+        # para servir de verificação em script de implantação. Um comando de
+        # diagnóstico que sai 0 quando está tudo errado é pior que nenhum.
+        run: |
+          if node dist/cli.js ambiente; then
+            echo "ERRO: saiu 0 sem credencial nenhuma configurada" >&2
+            exit 1
+          fi
+          echo "ambiente sem credencial: acusou e saiu 1, como esperado"
+
+      - name: Conferir o conteúdo do pacote
+        run: npm pack --dry-run

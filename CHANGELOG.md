@@ -1,0 +1,83 @@
+# Changelog
+
+Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/),
+versionamento conforme [SemVer](https://semver.org/lang/pt-BR/).
+
+---
+
+## [1.1.0] — 2026-09-07
+
+Primeira versão instalável. A `1.0.0` nunca chegou ao npm, e não teria
+funcionado se tivesse: o comando declarado em `bin` apontava para um arquivo
+que o build não gerava.
+
+### Corrigido
+
+- **A configuração de IA não chegava ao processo.** Nada no pacote lia o `.env`
+  — sem `dotenv`, sem `--env-file`, sem `process.loadEnvFile`. O `install.sh`
+  criava o arquivo e a documentação mandava editá-lo, mas as variáveis nunca
+  saíam dele. O erro que aparecia era de credencial, mandando conferir a chave
+  que já estava certa.
+- **O pacote não entregava onde prometia.** `rootDir` era `"."`, então o build
+  emitia em `dist/src/` enquanto `bin`, `main`, `types` e `exports` apontavam
+  para `dist/`. O comando instalado por `install.sh --global` apontava para
+  arquivo inexistente e `import ... from "analise-financeira-br"` falhava.
+  Nenhum teste percorria esse caminho, porque tudo rodava via `tsx` a partir
+  de `src/`.
+- `.gitignore`, `.env.example` e `.github/CODEOWNERS` passam a existir no
+  repositório. O upload pela interface web do GitHub os havia descartado por
+  serem dotfiles — inclusive o `.gitignore` que protege o `.env`.
+- `install.sh` volta a ser executável (modo `100755`).
+
+### Adicionado
+
+- **`src/ambiente.ts`** — carregamento do `.env` com precedência declarada:
+  variável do shell > `ANALISE_ENV_FILE` > `.env` do diretório atual > `.env`
+  da raiz do pacote. Usa `process.loadEnvFile` quando disponível (Node ≥ 20.12)
+  e traz um parser mínimo para o resto da linha 20. Arquivo ausente não é erro:
+  em container e CI a configuração vem inteira do ambiente. Sem dependências
+  novas.
+- **Comando `analise-financeira ambiente`** — mostra provedor, modelo, endpoint
+  e credencial encontrada sem gastar uma chamada, e sai com código 1 quando
+  falta configuração, para servir de verificação em script de implantação.
+  Nunca imprime credencial: apenas de qual variável ela veio.
+- **`configuracaoEfetiva()`** — fonte única da resolução de provedor e modelo.
+  `provedorDoAmbiente()` constrói o adaptador em cima dela, para que o
+  diagnóstico não possa divergir do que a chamada real faz. A sanidade exige
+  que os dois concordem.
+- **CI no GitHub Actions** — build, typecheck, as verificações de sanidade,
+  smoke do binário compilado e conferência do pacote, em Node 20 e 22. Roda
+  offline, sem segredo algum.
+- 22 verificações de sanidade novas (93 → 115), cobrindo precedência de
+  configuração, arquivo ausente, provedor inválido, a concordância entre
+  diagnóstico e chamada real, e a correspondência entre o que o `package.json`
+  promete e o que o build entrega.
+
+### Alterado
+
+- A biblioteca continua sem ler o `.env`, e isso passa a ser explícito: só a
+  CLI carrega o arquivo. `import { analisar }` não reescreve o `process.env` de
+  quem importou — num serviço multi-tenant, isso vazaria a chave de um cliente
+  para a chamada de outro.
+
+---
+
+## [1.0.0] — 2026-09-07
+
+Publicação inicial do motor de leitura, conferência e análise de Balanço
+Patrimonial e DRE brasileiros.
+
+- `analisar()` determinístico: 33 indicadores, conferência por identidades
+  contábeis e por âncoras impressas, sinais de alerta com severidade, nota
+  0–100 com memória de cálculo, rating e síntese. Sem IA e sem rede.
+- Extração por IA com dois provedores plugáveis: Anthropic (PDF direto, com o
+  layout da tabela preservado) e qualquer endpoint compatível com OpenAI (via
+  `--texto`).
+- A conferência manda na qualidade declarada pelo modelo: um modelo que derivou
+  um total do próprio número errado não tem como saber que errou.
+- O piso do rating é aplicado em código depois do parecer — o modelo pode ser
+  mais duro que o rating, nunca mais brando.
+- CLI, documentação em `docs/`, caso de referência anonimizado e verificação de
+  sanidade offline.
+
+[1.1.0]: https://github.com/adrianotomasoni/analise-financeira/releases/tag/v1.1.0
