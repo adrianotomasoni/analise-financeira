@@ -164,19 +164,28 @@ só **Squash merging**; marque *Automatically delete head branches*.
 
 ### 3. Actions — Settings → Actions → General
 
-Este repositório **não tem workflows**, e é o que elimina a maior superfície de
-risco de um repositório público: workflow que roda em PR de fork.
+> ⚠️ **Mudou.** Uma versão anterior deste arquivo dizia que o repositório não
+> tinha workflows e mandava **Disable actions**. Desde `.github/workflows/ci.yml`
+> isso deixou de ser verdade, e seguir a instrução antiga **desliga o CI** — a
+> verificação que impede uma fórmula errada de ser publicada. Pior: o badge do
+> README continua exibindo o último resultado bem-sucedido, então o repositório
+> aparenta estar verificado enquanto nada é verificado.
+
+O repositório tem um workflow: compila, roda as verificações de sanidade sobre o
+caso de referência, faz o smoke do binário e confere o pacote. Roda **offline**,
+não usa `secrets`, não chama provedor de IA e declara `permissions: contents: read`.
 
 | Campo | Valor |
 |---|---|
-| Actions permissions | **Disable actions** |
+| Actions permissions | **Allow all actions and reusable workflows** |
+| Fork pull request workflows | **Require approval for all external collaborators** |
+| Workflow permissions | **Read repository contents permission** |
+| Allow GitHub Actions to create and approve pull requests | ☐ desmarcado |
 
-Se um dia adicionar CI, volte aqui e configure:
-- *Fork pull request workflows* → **Require approval for all external collaborators**
-- *Workflow permissions* → **Read repository contents permission**
-- ☐ desmarcar *Allow GitHub Actions to create and approve pull requests*
-- **Nunca** use o gatilho `pull_request_target` com checkout do código do fork.
-  É a receita conhecida de execução de código não confiável com o seu token.
+A superfície de risco real de um repositório público não é ter workflow: é
+workflow que roda código de fork com o seu token. As duas linhas do meio fecham
+isso. E **nunca** use o gatilho `pull_request_target` com checkout do código do
+fork — é a receita conhecida de execução de código não confiável com o seu token.
 
 ### 4. Segurança — Settings → Advanced Security
 
