@@ -14,6 +14,7 @@ import { basename, extname } from "node:path";
 import { analisar } from "./analisar.js";
 import { carregarEnv, type OrigemEnv } from "./ambiente.js";
 import { derivarCamposDre } from "./derive.js";
+import { extrairTextoDePdf } from "./pdf.js";
 import { provedorDoAmbiente, configuracaoEfetiva } from "./ia/index.js";
 import { extrairDoDocumento } from "./ia/extrair.js";
 import { gerarParecer } from "./ia/parecer.js";
@@ -77,10 +78,7 @@ const RESET = "\x1b[0m";
 const cor = (c: string, t: string) => (process.stdout.isTTY ? `${COR[c] ?? ""}${t}${RESET}` : t);
 
 async function lerPdfComoTexto(caminho: string): Promise<string> {
-  const { default: pdfParse } = await import("pdf-parse");
-  const buf = await readFile(caminho);
-  const r = await pdfParse(buf);
-  return r.text;
+  return extrairTextoDePdf(await readFile(caminho));
 }
 
 /**

@@ -5,6 +5,28 @@ versionamento conforme [SemVer](https://semver.org/lang/pt-BR/).
 
 ---
 
+## [Não publicado]
+
+### Corrigido
+
+- **A leitura local de PDF (`--texto`) estava quebrada.** A atualização
+  automática da `pdf-parse` de 1.x para 2.4.5 trocou a função default pela
+  classe `PDFParse`, e nada acusou: o typecheck passava porque havia um
+  `declare module "pdf-parse"` local afirmando a API antiga, e as verificações
+  de sanidade rodam offline, sem tocar em PDF. O CI ficou verde sobre um
+  caminho que falhava em tempo de execução.
+  - A extração foi movida para `src/pdf.ts` e reescrita para a API v2.
+  - `types/pdf-parse.d.ts` foi removido: a v2 publica os próprios tipos, e era
+    aquela declaração que impedia o typecheck de ver a mudança.
+  - O texto passa a ser montado página a página. `resultado.text` da v2
+    intercala um marcador `-- N of M --` que a v1 não produzia, e esse texto
+    vai inteiro para o prompt — que foi calibrado sem ele.
+  - Novo cenário de sanidade lê um PDF de verdade (`testes/exemplo-minimo.pdf`,
+    sintético, gerado sem biblioteca). Com o código anterior, `npm run teste`
+    sai com código 1.
+
+---
+
 ## [1.1.0] — 2026-09-07
 
 Primeira versão instalável. A `1.0.0` nunca chegou ao npm, e não teria

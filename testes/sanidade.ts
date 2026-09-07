@@ -34,6 +34,7 @@ import { analisar } from "../src/analisar.js";
 import { notaParaScore, ratingDaNota } from "../src/score.js";
 import { LEGENDA_PONTUACAO, LEGENDA_RATING } from "../src/legenda.js";
 import { carregarEnv, chavesDeclaradas, raizDoPacote } from "../src/ambiente.js";
+import { extrairTextoDePdf } from "../src/pdf.js";
 import { configuracaoEfetiva, provedorDoAmbiente, MODELO_PADRAO_ANTHROPIC } from "../src/ia/index.js";
 
 const aqui = dirname(fileURLToPath(import.meta.url));
@@ -358,6 +359,25 @@ console.log("\nCenário J — o pacote entrega onde o package.json promete");
          typeof caminho === "string" && existsSync(join(raiz, caminho)));
     }
   }
+}
+
+console.log("\nCenário K — leitura local de PDF (o caminho que o CI não via)");
+{
+  // Uma atualização automática de major da `pdf-parse` (1.x → 2.x) trocou a
+  // função default pela classe `PDFParse`, e NADA acusou: o typecheck passava
+  // porque havia um `declare module "pdf-parse"` local afirmando a API antiga,
+  // e a sanidade roda offline, sem tocar em PDF. O CI ficou verde sobre um
+  // `--texto` quebrado em tempo de execução. Este cenário existe para que a
+  // próxima troca de API quebre aqui, e não na mesa de quem analisa um balanço.
+  const pdf = readFileSync(join(aqui, "exemplo-minimo.pdf"));
+  const texto = await extrairTextoDePdf(pdf);
+
+  ok("extrai texto de um PDF real", texto.trim().length > 0);
+  ok("lê a linha de título", texto.includes("BALANCO PATRIMONIAL SINTETICO"));
+  ok("lê um valor com separador decimal brasileiro", texto.includes("15891476,54"));
+  ok("lê um valor negativo", texto.includes("-63576663,00"));
+  ok("não injeta o marcador de página da v2 no texto do prompt",
+     !/--\s*\d+\s+of\s+\d+\s*--/.test(texto));
 }
 
 console.log(
