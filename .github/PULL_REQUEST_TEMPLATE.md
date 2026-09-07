@@ -1,10 +1,10 @@
 > **Antes de continuar: pull requests neste repositório não são revisados nem
 > mesclados.** Não é falta de consideração com quem os abre. O motor é mantido
 > em outro lugar, e mesclar aqui criaria duas fontes da verdade num código que
-> embasa decisão financeira. Ver [`CONTRIBUTING.md`](../blob/main/CONTRIBUTING.md).
+> embasa decisão financeira. Ver [`CONTRIBUTING.md`](https://github.com/adrianotomasoni/analise-financeira/blob/main/CONTRIBUTING.md).
 >
 > **Se você corrigiu um defeito real**, o caminho que funciona é
-> [abrir uma issue](../issues/new/choose) descrevendo-o — com o número que sai
+> [abrir uma issue](https://github.com/adrianotomasoni/analise-financeira/issues/new/choose) descrevendo-o — com o número que sai
 > errado e o que deveria sair. Isso chega à origem, e a correção volta publicada.
 > O código do conserto é útil na issue, como referência.
 >

@@ -319,7 +319,11 @@ console.log("\nCenário I — configuração: o .env precisa chegar ao processo"
   }
 
   limpar();
-  process.env.ANTHROPIC_API_KEY = "sk-ant-api03-chaveRealDeVerdade0123456789";
+  // Deliberadamente SEM o formato de uma chave real: a verificação de
+  // credenciais do PUBLICAR.md varre `git log -p --all`, e um valor de teste
+  // que imite `sk-ant-` + 20 caracteres a faz acusar para sempre. Alarme falso
+  // em varredura de segredo treina quem revisa a ignorar o alarme.
+  process.env.ANTHROPIC_API_KEY = "credencial-de-teste-nao-imita-chave-real";
   eq("uma chave real continua contando como credencial",
      configuracaoEfetiva().credencialDe, "ANTHROPIC_API_KEY");
   eq("e não é marcada como placeholder", configuracaoEfetiva().credencialPlaceholderEm, null);

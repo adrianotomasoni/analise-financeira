@@ -29,7 +29,26 @@ git log --all --oneline -- .env
 git ls-files
 ```
 
-As três primeiras devem voltar vazias; a quarta lista os 41 arquivos do projeto.
+A segunda e a terceira devem voltar vazias. A quarta lista os arquivos que vão a
+público: confira que não há nada inesperado ali.
+
+A primeira varre o **histórico**, e ali há duas ocorrências conhecidas — ambas
+inofensivas, ambas nomeadas aqui para que uma terceira salte aos olhos:
+
+1. A própria linha de comando escrita neste arquivo, que contém o padrão literal.
+2. Uma string sintética que esteve em `testes/sanidade.ts` até o commit seguinte a
+   `c219172`, imitando o formato de uma chave. Foi trocada por um valor que não
+   imita chave nenhuma, justamente para não gastar a atenção de quem revisa.
+
+Para verificar o que vai a público **hoje**, sem o ruído do histórico:
+
+```bash
+git grep -nE 'sk-ant-[A-Za-z0-9_-]{20}|sk-[A-Za-z0-9]{32}|eyJhbGciOi' -- . ':!PUBLICAR.md'
+```
+
+Essa tem de voltar vazia, sem exceção. O `:!PUBLICAR.md` exclui este arquivo, que
+contém os padrões literais e casaria consigo mesmo — o mesmo motivo pelo qual a
+varredura do histórico tem a ocorrência 1.
 
 > Se você afrouxar o padrão da primeira para um `sk-ant-` solto, ela acusa cinco
 > ocorrências — são os placeholders `sk-ant-...` na documentação, propositais.
