@@ -122,9 +122,21 @@ Para ler um PDF é preciso uma chave. Edite o .env:
 
     ANTHROPIC_API_KEY=sk-ant-...
 
+Confira se a configuração chegou ao motor — mostra provedor, modelo e se a
+credencial foi encontrada, sem gastar uma chamada:
+
+    npm run cli -- ambiente
+
 e então:
 
     npm run cli -- analisar balanco.pdf --ano 2025 --parecer
+
+Outro provedor (OpenAI, OpenRouter, Groq, vLLM, Ollama, gateway próprio):
+
+    IA_PROVEDOR=openai-compat
+    IA_BASE_URL=http://localhost:11434/v1
+    IA_API_KEY=ollama
+    IA_MODELO=qwen2.5:14b
 
 Leia docs/05-conectar-ia.md antes da primeira extração — em especial a
 seção sobre por que a conferência manda na qualidade declarada pelo modelo.

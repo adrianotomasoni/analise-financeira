@@ -86,6 +86,62 @@ ANTHROPIC_API_KEY=sk-ant-...
 npm run cli -- analisar balanco-2025.pdf --ano 2025 --parecer --json saida.json
 ```
 
+## Plugando o seu modelo
+
+Cada clone escolhe o próprio provedor. A configuração é lida do `.env` e do
+ambiente, e o comando abaixo mostra o que está valendo — sem gastar uma chamada
+para descobrir:
+
+```bash
+npm run cli -- ambiente
+```
+
+```
+  Provedor em vigor
+    provedor          anthropic
+    modelo            claude-opus-5
+    leitura de PDF    direta — o documento vai inteiro ao modelo
+    credencial        ANTHROPIC_API_KEY definida
+
+  ✓ Pronto.
+```
+
+**Anthropic** (padrão) — único que lê o PDF com o layout preservado:
+
+```bash
+IA_PROVEDOR=anthropic
+ANTHROPIC_API_KEY=sk-ant-...
+IA_MODELO=claude-opus-5        # ou claude-sonnet-5, claude-haiku-4-5
+```
+
+**Qualquer endpoint compatível com OpenAI** — OpenAI, OpenRouter, Groq, Together,
+vLLM, Ollama, LM Studio, gateway corporativo. Exige `--texto`, e o modelo precisa
+suportar chamada de função:
+
+```bash
+IA_PROVEDOR=openai-compat
+IA_BASE_URL=http://localhost:11434/v1   # Ollama, por exemplo
+IA_API_KEY=ollama
+IA_MODELO=qwen2.5:14b
+```
+
+### Precedência
+
+Da maior para a menor:
+
+1. `--provedor` / `--modelo` na linha de comando
+2. Variável exportada no shell, ou injetada pelo orquestrador
+3. Arquivo apontado por `ANALISE_ENV_FILE`
+4. `.env` do diretório atual, depois `.env` da raiz do pacote
+
+O item 2 vencer o arquivo é o que permite testar um modelo sem editar nada —
+`IA_MODELO=claude-haiku-4-5 npm run cli -- ambiente` — e é o que faz o motor se
+comportar em container, CI e systemd, onde não existe `.env`.
+
+O `.env` está no `.gitignore`. Nenhuma credencial é impressa em log ou
+diagnóstico: o comando `ambiente` diz de qual variável a chave veio, nunca o
+valor nem um trecho dele.
+
 ## Como biblioteca
 
 ```ts

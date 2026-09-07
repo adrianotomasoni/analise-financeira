@@ -49,7 +49,68 @@ diferentes ("PL negativo", "Patrimônio Líquido negativo", "passivo a descobert
 
 ---
 
-## 2. Escolher o provedor
+## 2. Como a configuração chega ao motor
+
+Antes de escolher o modelo, é preciso que a escolha chegue ao processo. Este é o
+modo de falha mais barato de evitar e o mais caro de diagnosticar, porque ele é
+**silencioso**: o `.env` está preenchido, ninguém o carrega, e o erro que aparece
+é de credencial — mandando conferir exatamente a chave que já está certa.
+
+A CLI é o **único** ponto do pacote que lê o `.env`. A biblioteca não lê:
+`import { analisar }` não pode reescrever o `process.env` de quem importou. Num
+serviço, a configuração vem do mecanismo do próprio serviço.
+
+### Precedência
+
+Da maior para a menor:
+
+| # | Origem | Para quê |
+|---|---|---|
+| 1 | `--provedor` / `--modelo` na linha de comando | Uma execução avulsa |
+| 2 | Variável exportada no shell, ou injetada pelo orquestrador | Container, CI, systemd |
+| 3 | Arquivo em `ANALISE_ENV_FILE` | Vários perfis lado a lado |
+| 4 | `.env` do diretório atual, depois o da raiz do pacote | O caso comum |
+
+O nível 2 vencer o arquivo não é detalhe de implementação: é o que permite testar
+um modelo sem editar nada,
+
+```bash
+IA_MODELO=claude-haiku-4-5 npm run cli -- analisar balanco.pdf
+```
+
+e é o que faz o mesmo build rodar em produção sem `.env` nenhum.
+
+### Ver o que está valendo
+
+```bash
+npm run cli -- ambiente
+```
+
+```
+  Configuração
+    arquivo .env      /srv/analise/.env
+    declara           IA_PROVEDOR, IA_BASE_URL, IA_API_KEY, IA_MODELO
+
+  Provedor em vigor
+    provedor          openai-compat
+    modelo            qwen2.5:14b
+    endpoint          http://localhost:11434/v1
+    leitura de PDF    via --texto — o layout da tabela se perde
+    credencial        IA_API_KEY definida
+
+  ✓ Pronto.
+```
+
+Sai com código 1 quando falta algo, então serve de verificação em script de
+implantação. E **nunca imprime credencial** — nem o valor, nem um trecho: só de
+qual variável ela veio. O que o comando responde vem da mesma função que a
+chamada real usa (`configuracaoEfetiva()`), e a sanidade exige que as duas
+concordem; um diagnóstico livre para divergir do comportamento é pior que
+diagnóstico nenhum.
+
+---
+
+## 3. Escolher o provedor
 
 ### Anthropic (padrão, recomendado)
 
@@ -124,7 +185,7 @@ exemplos. Nenhuma regra contábil, nenhum indicador e nenhuma parte da nota muda
 
 ---
 
-## 3. As duas chamadas
+## 4. As duas chamadas
 
 ### Extração — documento → campos
 
@@ -175,7 +236,7 @@ aconteceu. Um modelo tende a pedir licença para ser otimista; quem assume risco
 
 ---
 
-## 4. Custo
+## 5. Custo
 
 Por análise completa (extração + parecer), documento típico de 4 a 12 páginas:
 
@@ -199,12 +260,12 @@ Ver [`07-operacao.md`](07-operacao.md).
 
 ---
 
-## 5. Erros e o que fazer
+## 6. Erros e o que fazer
 
 | Erro | Significa | O que fazer |
 |---|---|---|
 | `limite de taxa atingido (429)` | Rate limit | Repetir com espera exponencial. `ErroProvedor.repetivel` é `true` |
-| `credencial inválida` | Chave errada ou ausente | Conferir o `.env` |
+| `credencial inválida` | Chave errada, ou não chegou ao processo | `analise-financeira ambiente` — ele diz se a variável foi encontrada e de onde |
 | `o modelo não chamou 'salvar_analise_financeira'` | Não houve chamada de função | Quase sempre modelo sem suporte a `tools`. Trocar de modelo |
 | `o modelo recusou a solicitação` | Classificador de segurança | Raro em documento contábil. Verificar se o PDF é o esperado |
 | `este provedor não aceita PDF direto` | `openai-compat` com PDF | Rodar com `--texto`, ou usar o provedor `anthropic` |
@@ -215,7 +276,7 @@ vezes) esperando resultado diferente. Repita só o que é transitório: 429, 5xx
 
 ---
 
-## 6. Segurança e privacidade
+## 7. Segurança e privacidade
 
 Balanço é documento sensível. Três pontos:
 
@@ -229,7 +290,7 @@ Balanço é documento sensível. Três pontos:
 
 ---
 
-## 7. Trocando de modelo
+## 8. Trocando de modelo
 
 Trocar de modelo muda a leitura. Antes de adotar um novo em produção:
 

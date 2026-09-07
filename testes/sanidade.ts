@@ -17,9 +17,10 @@
 //
 // Roda sem rede e sem chave. Se falhar, não use o build para decisão.
 
-import { readFileSync } from "node:fs";
+import { readFileSync, writeFileSync, mkdtempSync, existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
+import { tmpdir } from "node:os";
 
 import {
   calcularIndicadores, motivosIndisponiveis, calcularDividaFinanceiraBruta,
@@ -32,6 +33,8 @@ import { classificarPeriodo } from "../src/periodo.js";
 import { analisar } from "../src/analisar.js";
 import { notaParaScore, ratingDaNota } from "../src/score.js";
 import { LEGENDA_PONTUACAO, LEGENDA_RATING } from "../src/legenda.js";
+import { carregarEnv, chavesDeclaradas } from "../src/ambiente.js";
+import { configuracaoEfetiva, provedorDoAmbiente, MODELO_PADRAO_ANTHROPIC } from "../src/ia/index.js";
 
 const aqui = dirname(fileURLToPath(import.meta.url));
 const fixture = JSON.parse(readFileSync(join(aqui, "../exemplos/exemplo-transportadora-2025.json"), "utf8"));
@@ -220,6 +223,110 @@ console.log("\nCenário H — contas cruas + derivação = análise completa");
   perto("Dív. Líq./EBITDA = 17,81x", a.indicadores.dividaLiquidaEbitda, 17.81, 0.01);
   ok("e a conferência avalia mais verificações que sem derivar",
      a.conferencia.avaliadas > analisar(cruas).conferencia.avaliadas);
+}
+
+console.log("\nCenário I — configuração: o .env precisa chegar ao processo");
+{
+  // O modo de falha que este cenário cobre não dá erro de compilação nem de
+  // execução: o `.env` está preenchido, ninguém o carrega, e o motor cai no
+  // padrão em silêncio — ou falha por credencial ausente apontando justamente
+  // a chave que o usuário acabou de configurar.
+  const guarda = { ...process.env };
+  const limpar = () => {
+    for (const k of Object.keys(process.env)) if (!(k in guarda)) delete process.env[k];
+    for (const k of ["IA_PROVEDOR", "IA_MODELO", "IA_BASE_URL", "IA_API_KEY", "IA_ESFORCO",
+                     "ANTHROPIC_API_KEY", "ANTHROPIC_AUTH_TOKEN", "ANALISE_ENV_FILE"]) {
+      delete process.env[k];
+    }
+  };
+  const dir = mkdtempSync(join(tmpdir(), "af-env-"));
+  const escrever = (conteudo: string): string => {
+    const caminho = join(dir, `${Math.random().toString(36).slice(2)}.env`);
+    writeFileSync(caminho, conteudo, "utf8");
+    return caminho;
+  };
+
+  limpar();
+  process.env.ANALISE_ENV_FILE = escrever(
+    "# comentário\nIA_MODELO=modelo-do-arquivo\nANTHROPIC_API_KEY=chave-do-arquivo\n",
+  );
+  const origem = carregarEnv();
+  ok("carregarEnv encontra o arquivo apontado por ANALISE_ENV_FILE", origem.arquivo !== null);
+  eq("e o valor do arquivo chega ao process.env", process.env.IA_MODELO, "modelo-do-arquivo");
+  eq("o modelo efetivo passa a ser o do arquivo", configuracaoEfetiva().modelo, "modelo-do-arquivo");
+  ok("com credencial no arquivo, não há problema a reportar", configuracaoEfetiva().problema === null);
+  eq("a credencial é atribuída à variável certa", configuracaoEfetiva().credencialDe, "ANTHROPIC_API_KEY");
+
+  // Precedência. Sem isto, `IA_MODELO=x comando` e o ambiente de um container
+  // seriam sobrescritos por um .env esquecido no diretório.
+  limpar();
+  process.env.IA_MODELO = "modelo-do-shell";
+  process.env.ANALISE_ENV_FILE = escrever("IA_MODELO=modelo-do-arquivo\nIA_ESFORCO=low\n");
+  carregarEnv();
+  eq("variável já exportada no shell vence o arquivo", process.env.IA_MODELO, "modelo-do-shell");
+  eq("e o que só existe no arquivo é aplicado", process.env.IA_ESFORCO, "low");
+
+  // Arquivo ausente é situação normal: em container tudo vem do ambiente.
+  limpar();
+  process.env.ANALISE_ENV_FILE = join(dir, "nao-existe.env");
+  const vazio = carregarEnv();
+  eq("arquivo inexistente não lança, apenas reporta ausência", vazio.arquivo, null);
+  eq("e o padrão continua valendo", configuracaoEfetiva().modelo, MODELO_PADRAO_ANTHROPIC);
+  ok("sem credencial nenhuma, o problema é reportado", configuracaoEfetiva().problema !== null);
+
+  eq("chavesDeclaradas lê nomes, não valores",
+     chavesDeclaradas("# c\nA=1\nexport B=2\nlixo\n").join(","), "A,B");
+
+  // O diagnóstico só serve se responder o mesmo que a chamada real faria.
+  limpar();
+  process.env.ANTHROPIC_API_KEY = "chave";
+  process.env.IA_MODELO = "claude-sonnet-5";
+  eq("provedorDoAmbiente usa o modelo que o diagnóstico anuncia",
+     provedorDoAmbiente().modelo, configuracaoEfetiva().modelo);
+  eq("e o diagnóstico anuncia o do ambiente", configuracaoEfetiva().modelo, "claude-sonnet-5");
+
+  limpar();
+  process.env.IA_PROVEDOR = "openai-compat";
+  ok("openai-compat sem IA_BASE_URL acusa o problema", configuracaoEfetiva().problema !== null);
+  process.env.IA_BASE_URL = "http://localhost:11434/v1";
+  process.env.IA_API_KEY = "local";
+  eq("com base URL, o provedor fica pronto", configuracaoEfetiva().problema, null);
+  eq("e declara que não aceita PDF direto", configuracaoEfetiva().aceitaPdf, false);
+
+  limpar();
+  process.env.IA_PROVEDOR = "provedor-que-nao-existe";
+  ok("IA_PROVEDOR inválido é reportado, não ignorado", configuracaoEfetiva().problema !== null);
+
+  limpar();
+  Object.assign(process.env, guarda);
+}
+
+console.log("\nCenário J — o pacote entrega onde o package.json promete");
+{
+  // `rootDir: "."` fazia o TypeScript emitir em dist/src/, enquanto bin, main e
+  // exports apontavam para dist/. Nada acusava: o typecheck passa, a sanidade
+  // passa, e a CLI roda via tsx. Só quebrava para quem instalava — `npm link`
+  // criava um comando apontando para arquivo inexistente, e o import do pacote
+  // pelo nome falhava. É exatamente o caminho que nenhum teste percorria.
+  const raiz = join(aqui, "..");
+  const pkg = JSON.parse(readFileSync(join(raiz, "package.json"), "utf8"));
+  const dist = join(raiz, "dist");
+
+  if (!existsSync(dist)) {
+    console.log("  · dist/ ausente — verificação de empacotamento pulada (rode npm run build)");
+  } else {
+    const declarados: [string, string][] = [
+      ["bin", pkg.bin?.["analise-financeira"]],
+      ["main", pkg.main],
+      ["types", pkg.types],
+      ["exports.import", pkg.exports?.["."]?.import],
+      ["exports.types", pkg.exports?.["."]?.types],
+    ];
+    for (const [rotulo, caminho] of declarados) {
+      ok(`package.json ${rotulo} → ${caminho} existe no build`,
+         typeof caminho === "string" && existsSync(join(raiz, caminho)));
+    }
+  }
 }
 
 console.log(

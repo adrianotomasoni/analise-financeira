@@ -4,12 +4,17 @@
 //   analise-financeira analisar balanco.pdf --ano 2025
 //   analise-financeira analisar contas.json --sem-ia
 //   analise-financeira analisar balanco.pdf --parecer --json saida.json
+//   analise-financeira ambiente
+//
+// Este arquivo é o único ponto do pacote que carrega o `.env`. Ver `ambiente.ts`
+// para o motivo de a biblioteca não fazer isso.
 
 import { readFile, writeFile } from "node:fs/promises";
 import { basename, extname } from "node:path";
 import { analisar } from "./analisar.js";
+import { carregarEnv, type OrigemEnv } from "./ambiente.js";
 import { derivarCamposDre } from "./derive.js";
-import { provedorDoAmbiente } from "./ia/index.js";
+import { provedorDoAmbiente, configuracaoEfetiva } from "./ia/index.js";
 import { extrairDoDocumento } from "./ia/extrair.js";
 import { gerarParecer } from "./ia/parecer.js";
 import { INDICADORES_CONFIG, INDICADORES_GRUPOS, formatarIndicador, getIndicadorStatus, brlCompacto } from "./indicadores.js";
@@ -22,6 +27,7 @@ const USO = `
 analise-financeira — motor de leitura e análise de Balanço Patrimonial e DRE
 
   analise-financeira analisar <arquivo> [opções]
+  analise-financeira ambiente            mostra a configuração de IA em vigor
 
 Arquivo
   .pdf         extraído por IA e depois analisado
@@ -39,7 +45,10 @@ Opções
   --modelo <id>       sobrepõe IA_MODELO
   --finalidade <txt>  contexto de uso, entra no papel do analista
 
-Ambiente: veja .env.example
+Configuração
+  Lida do .env (diretório atual, depois raiz do pacote) e do ambiente.
+  Variável já exportada no shell vence o arquivo. ANALISE_ENV_FILE aponta outro.
+  Rode "analise-financeira ambiente" para ver o que está valendo. Veja .env.example.
 `;
 
 interface Args { [k: string]: string | boolean | undefined }
@@ -74,9 +83,66 @@ async function lerPdfComoTexto(caminho: string): Promise<string> {
   return r.text;
 }
 
+/**
+ * `analise-financeira ambiente` — responde "com o que eu vou falar, e está
+ * pronto?" sem gastar uma chamada para descobrir. Existe porque o modo de falha
+ * de quem acabou de clonar é silencioso: o `.env` está preenchido, a variável
+ * não chegou ao processo, e o erro que aparece é de credencial — que manda
+ * conferir justamente a chave que está certa.
+ *
+ * Não imprime credencial nenhuma, nem trecho: só de qual variável ela veio.
+ */
+function mostrarAmbiente(origem: OrigemEnv): number {
+  const cfg = configuracaoEfetiva();
+  const linha = (rotulo: string, valor: string) => console.log(`    ${rotulo.padEnd(18)}${valor}`);
+
+  console.log("\n  Configuração");
+  if (origem.arquivo) {
+    linha("arquivo .env", origem.arquivo);
+    linha("declara", origem.chaves.length ? origem.chaves.join(", ") : "(vazio)");
+  } else {
+    linha("arquivo .env", cor("yellow", "nenhum encontrado"));
+    linha("procurado em", origem.procurados.join("  ·  "));
+    console.log("                      (normal em container e CI, onde tudo vem do ambiente)");
+  }
+
+  console.log("\n  Provedor em vigor");
+  linha("provedor", cfg.provedor);
+  linha("modelo", cfg.modelo);
+  if (cfg.baseUrl) linha("endpoint", cfg.baseUrl);
+  if (cfg.esforco) linha("esforço", cfg.esforco);
+  linha("leitura de PDF", cfg.aceitaPdf
+    ? "direta — o documento vai inteiro ao modelo"
+    : cor("yellow", "via --texto — o layout da tabela se perde"));
+  linha("credencial", cfg.credencialDe
+    ? cor("green", `${cfg.credencialDe} definida`)
+    : cor("red", `ausente (procurada em ${cfg.varsCredencial.join(", ")})`));
+
+  console.log("");
+  if (cfg.problema) {
+    console.log(cor("red", `  ✗ ${cfg.problema}`));
+    console.log("");
+    console.log("  Para apontar o motor a outro modelo, edite o .env ou exporte no shell:");
+    console.log("    IA_PROVEDOR=anthropic      ANTHROPIC_API_KEY=...");
+    console.log("    IA_PROVEDOR=openai-compat  IA_BASE_URL=...  IA_API_KEY=...  IA_MODELO=...");
+    console.log("  Ou, só para esta execução:  --provedor <nome> --modelo <id>");
+    console.log("");
+    return 1;
+  }
+  console.log(cor("green", "  ✓ Pronto. O motor offline (--sem-ia) não depende de nada disto."));
+  console.log("");
+  return 0;
+}
+
 async function main() {
   const { comando, alvo, args } = parseArgs(process.argv.slice(2));
   if (!comando || comando === "ajuda" || args.help || args.h) { console.log(USO); return; }
+
+  // Antes de qualquer leitura de process.env, e depois de resolver a ajuda:
+  // `--help` não pode depender de haver arquivo de configuração.
+  const origemEnv = carregarEnv();
+
+  if (comando === "ambiente") { process.exit(mostrarAmbiente(origemEnv)); }
   if (comando !== "analisar") { console.error(`comando desconhecido: ${comando}`); console.log(USO); process.exit(2); }
   if (!alvo) { console.error("faltou o arquivo."); console.log(USO); process.exit(2); }
 
